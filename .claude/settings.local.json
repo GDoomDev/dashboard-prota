@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s \"https://docs.google.com/spreadsheets/d/e/2PACX-1vQQR6Plf3PGtkgKU50kPad95HNTrKLjr9XX-2sPiyQDGVSDjNawlJs_s6lwlFcaIGLc4IyGt6vSrKw5/pubhtml\")",
+      "Bash(curl -s \"https://docs.google.com/spreadsheets/d/e/2PACX-1vQQR6Plf3PGtkgKU50kPad95HNTrKLjr9XX-2sPiyQDGVSDjNawlJs_s6lwlFcaIGLc4IyGt6vSrKw5/pub?gid=226351063&single=true&output=csv\")",
+      "Bash(curl -sL \"https://docs.google.com/spreadsheets/d/e/2PACX-1vQQR6Plf3PGtkgKU50kPad95HNTrKLjr9XX-2sPiyQDGVSDjNawlJs_s6lwlFcaIGLc4IyGt6vSrKw5/pub?gid=226351063&single=true&output=csv\")",
+      "Bash(npm run *)",
+      "Bash(echo \"Server PID: $!\")",
+      "Bash(curl -s http://localhost:3000/api/dashboard)",
+      "Bash(curl -s http://localhost:3000/)",
+      "Bash(curl -sL http://localhost:3000/canais)",
+      "Bash(python3 -c ' *)",
+      "Bash(npx tsc *)"
+    ]
+  }
+}
