@@ -82,6 +82,8 @@ export function RevenueTable({ segments, range, monthly = false, changelog, team
   const thBase = "border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-xs font-semibold text-zinc-600 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-800/60";
   const tdBase = "border border-zinc-200 dark:border-zinc-700 px-3 py-1.5 text-xs tabular-nums text-right text-zinc-700 dark:text-zinc-300";
   const tdDate = "border border-zinc-200 dark:border-zinc-700 px-3 py-1.5 text-xs text-zinc-500 dark:text-zinc-400 whitespace-nowrap";
+  // Var% cell: no default text color so conditional colors apply cleanly
+  const tdVar = "border border-zinc-200 dark:border-zinc-700 px-3 py-1.5 text-xs tabular-nums text-right font-medium";
 
   return (
     <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
@@ -133,9 +135,9 @@ export function RevenueTable({ segments, range, monthly = false, changelog, team
                   {formatUSD(total)}
                 </td>
                 <td
-                  className={`${tdBase} font-medium ${
+                  className={`${tdVar} ${
                     varPct === null
-                      ? "text-zinc-400"
+                      ? "text-zinc-400 dark:text-zinc-500"
                       : varPct >= 0
                       ? "text-emerald-600 dark:text-emerald-400"
                       : "text-red-600 dark:text-red-400"

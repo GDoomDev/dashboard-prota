@@ -241,18 +241,24 @@ export default async function TimesPage({ searchParams }: Props) {
             </p>
           </header>
           <div className="flex flex-col gap-4">
-            {data.goals.map((goal) => {
-              const entry = goalEntries.get(goal.team);
-              return (
-                <GoalProgress
-                  key={goal.team}
-                  team={goal.team}
-                  goal={goal}
-                  current={entry?.revenue ?? 0}
-                  projectedDates={entry?.projected}
-                />
-              );
-            })}
+            {[...data.goals]
+              .sort((a, b) => {
+                const ra = goalEntries.get(a.team)?.revenue ?? 0;
+                const rb = goalEntries.get(b.team)?.revenue ?? 0;
+                return rb - ra;
+              })
+              .map((goal) => {
+                const entry = goalEntries.get(goal.team);
+                return (
+                  <GoalProgress
+                    key={goal.team}
+                    team={goal.team}
+                    goal={goal}
+                    current={entry?.revenue ?? 0}
+                    projectedDates={entry?.projected}
+                  />
+                );
+              })}
           </div>
         </section>
       )}
