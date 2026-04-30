@@ -11,7 +11,7 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from "recharts";
-import { formatUSD } from "@/lib/format";
+import { formatFullDate, formatUSD } from "@/lib/format";
 
 export interface GoalChartPoint {
   date: string;
@@ -32,10 +32,56 @@ interface Props {
 
 // Meta 1 lightest → Meta 3 most vivid (highest goal)
 const META_COLORS = {
-  1: "#86efac", // green-300
-  2: "#4ade80", // green-400
+  1: "#4ade80", // green-400
+  2: "#4CAF50", // green-500
   3: "#16a34a", // green-600
 };
+
+interface GoalTooltipEntry {
+  name: string;
+  value: number | null;
+  color: string;
+  payload: GoalChartPoint;
+}
+
+function GoalTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: GoalTooltipEntry[];
+}) {
+  if (!active || !payload?.length) return null;
+  const date = payload[0]?.payload?.date ?? "";
+  const sorted = [...payload].sort((a, b) => {
+    const av = a.value ?? -Infinity;
+    const bv = b.value ?? -Infinity;
+    return bv - av;
+  });
+  return (
+    <div
+      style={{
+        backgroundColor: "var(--background)",
+        border: "1px solid #e4e4e7",
+        borderRadius: "8px",
+        fontSize: "12px",
+        padding: "6px 10px",
+      }}
+    >
+      <p style={{ marginBottom: 4, fontSize: 11, color: "#71717a" }}>
+        {formatFullDate(date)}
+      </p>
+      {sorted.map((entry, i) => (
+        <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 2 }}>
+          <span style={{ color: entry.color }}>{entry.name}</span>
+          <span style={{ marginLeft: "auto", fontVariantNumeric: "tabular-nums" }}>
+            {typeof entry.value === "number" ? formatUSD(entry.value) : "—"}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function GoalProjectionChart({ points, teamColor, todayDate, goalStart, goalEnd }: Props) {
   const todayLabel = points.find((p) => p.date === todayDate)?.label ?? "";
@@ -74,18 +120,12 @@ export function GoalProjectionChart({ points, teamColor, todayDate, goalStart, g
             domain={[0, "auto"]}
           />
           <Tooltip
-            formatter={(value, name) =>
-              typeof value === "number"
-                ? [formatUSD(value), String(name ?? "")]
-                : ["—", String(name ?? "")]
-            }
-            contentStyle={{
-              backgroundColor: "var(--background)",
-              border: "1px solid #e4e4e7",
-              borderRadius: "8px",
-              fontSize: "12px",
-            }}
-            labelStyle={{ fontSize: 11, color: "#71717a", marginBottom: 4 }}
+            content={(props) => (
+              <GoalTooltip
+                active={props.active}
+                payload={props.payload as unknown as GoalTooltipEntry[]}
+              />
+            )}
           />
           <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
           {todayLabel && (

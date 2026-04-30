@@ -55,9 +55,11 @@ function computeProjectedDates(
 export default async function TimesPage({ searchParams }: Props) {
   const params = await searchParams;
   const data = await loadDashboardData();
-  const { range, revenueEnd } = resolvePeriod(data, params);
-  const series = seriesPerTeam(data.segments, data.changelog);
   const selectedTeam = params.entity ?? null;
+  const { range, revenueEnd } = resolvePeriod(data, params, {
+    selectedTeam,
+  });
+  const series = seriesPerTeam(data.segments, data.changelog);
 
   // Historical daily rows per team (used for goal progress + projections)
   const allTeamRows = rowsByTeam(data.segments, data.changelog);

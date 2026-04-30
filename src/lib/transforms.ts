@@ -6,7 +6,7 @@ import {
   TeamGoal,
 } from "./types";
 
-export type PeriodPreset = "7d" | "30d" | "90d" | "2026" | "custom";
+export type PeriodPreset = "7d" | "30d" | "90d" | "tri" | "2026" | "custom";
 
 export interface DateRange {
   start: string;
@@ -255,4 +255,18 @@ export function segmentsByEverTeam(
 
 export function titleCase(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/** Returns the team that currently owns a channel (via the most recent changelog entry for any of its segments). */
+export function currentTeamForChannel(
+  segments: SegmentSeries[],
+  changelog: ChangelogEntry[],
+  channel: string,
+): string | null {
+  const channelSegments = segments.filter((s) => s.channel === channel);
+  for (const seg of channelSegments) {
+    const team = currentTeamForSegment(changelog, seg.segment);
+    if (team) return team;
+  }
+  return null;
 }

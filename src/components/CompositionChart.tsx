@@ -55,7 +55,11 @@ function DonutChart({
             ))}
           </Pie>
           <Tooltip
-            formatter={(value) => [formatValue(typeof value === "number" ? value : 0), ""]}
+            formatter={(value, name) => {
+              const v = typeof value === "number" ? value : 0;
+              const pct = total > 0 ? ((v / total) * 100).toFixed(1) : "0.0";
+              return [`${pct}% · ${formatValue(v)}`, String(name)];
+            }}
             contentStyle={{
               backgroundColor: "var(--background)",
               border: "1px solid #e4e4e7",

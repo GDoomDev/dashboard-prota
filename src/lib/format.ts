@@ -30,6 +30,12 @@ export function formatShortDate(iso: string): string {
   return `${d}/${m}`;
 }
 
+export function formatFullDate(iso: string): string {
+  const [y, m, d] = iso.split("-");
+  if (!y || !m || !d) return iso;
+  return `${d}-${m}-${y}`;
+}
+
 const PALETTE = [
   "#4f46e5",
   "#06b6d4",

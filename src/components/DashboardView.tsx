@@ -18,6 +18,7 @@ interface Props {
   entityLabel: string;
   emptyMessage?: string;
   rangeAvailable: boolean;
+  defaultPreset?: "7d" | "30d" | "90d" | "tri" | "2026";
 }
 
 export function DashboardView({
@@ -30,6 +31,7 @@ export function DashboardView({
   entityLabel,
   emptyMessage = "Sem dados no período selecionado.",
   rangeAvailable,
+  defaultPreset,
 }: Props) {
   const colorMap: Record<string, string> = Object.fromEntries(
     series.map((s, i) => [s.id, colorForEntity(s.id, i)]),
@@ -87,7 +89,7 @@ export function DashboardView({
             />
           </Suspense>
           <Suspense fallback={null}>
-            <PeriodPicker />
+            <PeriodPicker defaultPreset={defaultPreset} />
           </Suspense>
         </div>
 

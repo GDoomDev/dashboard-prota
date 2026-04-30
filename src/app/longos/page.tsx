@@ -12,7 +12,9 @@ interface Props {
 export default async function LongosPage({ searchParams }: Props) {
   const params = await searchParams;
   const data = await loadDashboardData();
-  const { range, revenueEnd } = resolvePeriod(data, params);
+  const { range, revenueEnd } = resolvePeriod(data, params, {
+    selectedChannel: params.entity ?? null,
+  });
   const series = seriesPerSegmentKind(data.segments, "longos");
   return (
     <DashboardView

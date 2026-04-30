@@ -15,12 +15,16 @@ interface Props {
 export default async function RelatorioPage({ searchParams }: Props) {
   const params = await searchParams;
   const data = await loadDashboardData();
-  const { range, revenueEnd } = resolvePeriod(data, params, "2026");
 
   const byTeam = segmentsByEverTeam(data.segments, data.changelog);
   const teams = [...byTeam.keys()].sort();
 
   const selectedTeam = params.entity && byTeam.has(params.entity) ? params.entity : teams[0] ?? null;
+
+  const { range, revenueEnd } = resolvePeriod(data, params, {
+    defaultPreset: "2026",
+    selectedTeam,
+  });
   const segments = selectedTeam ? (byTeam.get(selectedTeam) ?? []) : [];
 
   const revenueRange = { start: range.start, end: revenueEnd || range.end };

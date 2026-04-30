@@ -4,20 +4,25 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import clsx from "clsx";
 
-type SimplePreset = "7d" | "30d" | "90d" | "2026";
+type SimplePreset = "7d" | "30d" | "90d" | "tri" | "2026";
 
 const PRESETS: Array<{ id: SimplePreset; label: string }> = [
   { id: "7d", label: "7 dias" },
   { id: "30d", label: "30 dias" },
   { id: "90d", label: "90 dias" },
+  { id: "tri", label: "Tri" },
   { id: "2026", label: "2026" },
 ];
 
-export function PeriodPicker() {
+interface Props {
+  defaultPreset?: SimplePreset;
+}
+
+export function PeriodPicker({ defaultPreset = "30d" }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
-  const current = params.get("preset") ?? "30d";
+  const current = params.get("preset") ?? defaultPreset;
   const customStart = params.get("start") ?? "";
   const customEnd = params.get("end") ?? "";
   const [showCustom, setShowCustom] = useState(current === "custom");

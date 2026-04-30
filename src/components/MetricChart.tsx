@@ -10,7 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { colorFor, formatInt, formatShortDate, formatUSD } from "@/lib/format";
+import { colorFor, formatFullDate, formatInt, formatShortDate, formatUSD } from "@/lib/format";
 import type { NamedSeries } from "@/lib/transforms";
 
 type Metric = "revenue" | "views";
@@ -25,6 +25,51 @@ interface Props {
 interface ChartRow {
   date: string;
   [key: string]: number | string;
+}
+
+interface TooltipEntry {
+  name: string;
+  value: number;
+  color: string;
+}
+
+function MetricTooltip({
+  active,
+  payload,
+  label,
+  fmt,
+}: {
+  active?: boolean;
+  payload?: TooltipEntry[];
+  label?: unknown;
+  fmt: (n: number) => string;
+}) {
+  if (!active || !payload?.length) return null;
+  const sorted = [...payload].sort((a, b) => b.value - a.value);
+  return (
+    <div
+      style={{
+        backgroundColor: "rgb(24 24 27)",
+        border: "1px solid rgb(63 63 70)",
+        borderRadius: 8,
+        color: "white",
+        fontSize: 12,
+        padding: "6px 10px",
+      }}
+    >
+      <p style={{ marginBottom: 4, fontSize: 11, color: "#a1a1aa" }}>
+        {formatFullDate(String(label ?? ""))}
+      </p>
+      {sorted.map((entry, i) => (
+        <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 2 }}>
+          <span style={{ color: entry.color }}>{entry.name}</span>
+          <span style={{ marginLeft: "auto", fontVariantNumeric: "tabular-nums" }}>
+            {fmt(entry.value)}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function buildRows(series: NamedSeries[], metric: Metric): ChartRow[] {
@@ -68,15 +113,14 @@ export function MetricChart({ series, metric, title, colors }: Props) {
               width={70}
             />
             <Tooltip
-              formatter={(v: unknown) => fmt(Number(v))}
-              labelFormatter={(label: unknown) => String(label)}
-              contentStyle={{
-                backgroundColor: "rgb(24 24 27)",
-                border: "1px solid rgb(63 63 70)",
-                borderRadius: 8,
-                color: "white",
-                fontSize: 12,
-              }}
+              content={(props) => (
+                <MetricTooltip
+                  active={props.active}
+                  payload={props.payload as unknown as TooltipEntry[]}
+                  label={props.label}
+                  fmt={fmt}
+                />
+              )}
             />
             <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
             {series.map((s, i) => (

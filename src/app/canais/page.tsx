@@ -13,7 +13,9 @@ interface Props {
 export default async function CanaisPage({ searchParams }: Props) {
   const params = await searchParams;
   const data = await loadDashboardData();
-  const { range, revenueEnd } = resolvePeriod(data, params);
+  const { range, revenueEnd } = resolvePeriod(data, params, {
+    selectedChannel: params.entity ?? null,
+  });
   const series = seriesPerChannel(data.segments);
 
   const selectedCanal = params.entity ?? null;
