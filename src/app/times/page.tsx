@@ -15,6 +15,7 @@ import { DashboardView } from "@/components/DashboardView";
 import { GoalProgress, GoalProjectedDates } from "@/components/GoalProgress";
 import { CompositionChart } from "@/components/CompositionChart";
 import { GoalProjectionChart, GoalChartPoint } from "@/components/GoalProjectionChart";
+import { SegmentShareChart, TeamShare } from "@/components/SegmentShareChart";
 
 export const revalidate = 300;
 
@@ -63,6 +64,27 @@ export default async function TimesPage({ searchParams }: Props) {
 
   // Historical daily rows per team (used for goal progress + projections)
   const allTeamRows = rowsByTeam(data.segments, data.changelog);
+
+  // Per-team revenue split by kind (shorts / longos) for the current period
+  const revenueRange = { start: range.start, end: revenueEnd || range.end };
+  const shortsByTeamMap = new Map<string, number>();
+  const longosByTeamMap = new Map<string, number>();
+  if (range.start && range.end) {
+    for (const seg of data.segments) {
+      for (const row of filterRows(seg.rows, revenueRange)) {
+        const team = teamForSegmentOnDate(data.changelog, seg.segment, row.date);
+        if (!team) continue;
+        const map = seg.kind === "curtos" ? shortsByTeamMap : longosByTeamMap;
+        map.set(team, (map.get(team) ?? 0) + row.revenue);
+      }
+    }
+  }
+  const shortsShares: TeamShare[] = [...shortsByTeamMap.entries()]
+    .map(([team, revenue]) => ({ team, revenue }))
+    .filter((d) => d.revenue > 0);
+  const longosShares: TeamShare[] = [...longosByTeamMap.entries()]
+    .map(([team, revenue]) => ({ team, revenue }))
+    .filter((d) => d.revenue > 0);
 
   // Precompute goal revenue + projected dates for every team with a goal
   type GoalEntry = {
@@ -262,6 +284,21 @@ export default async function TimesPage({ searchParams }: Props) {
                 );
               })}
           </div>
+        </section>
+      )}
+
+      {/* Todos selected: shorts vs longos share per team */}
+      {!selectedTeam && (shortsShares.length > 0 || longosShares.length > 0) && (
+        <section className="flex flex-col gap-3">
+          <header>
+            <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
+              Shorts vs Longos — Participação por Time
+            </h2>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              Parcela do faturamento total de cada segmento atribuída a cada time no período.
+            </p>
+          </header>
+          <SegmentShareChart shorts={shortsShares} longos={longosShares} />
         </section>
       )}
     </div>

@@ -2,9 +2,12 @@ import {
   ChangelogEntry,
   DailyRow,
   DashboardData,
+  MemberKind,
+  MemberLevel,
   SegmentSeries,
   SheetTab,
   TeamGoal,
+  TeamMember,
 } from "./types";
 import { parseCsv, parseDate, parseLocaleNumber } from "./parsers";
 
@@ -125,23 +128,63 @@ function parseGoals(raw: string[][]): TeamGoal[] {
   return out;
 }
 
+function parseTeamMembers(raw: string[][]): TeamMember[] {
+  // Cell I2 (row index 1, column index 8) holds the BRL→USD exchange rate
+  const exchangeRaw = raw[1]?.[8] ?? "";
+  const exchangeRate = parseLocaleNumber(exchangeRaw);
+  const hasRate = Number.isFinite(exchangeRate) && exchangeRate > 0;
+
+  const objs = rowsToObjects(raw);
+  const out: TeamMember[] = [];
+  for (const o of objs) {
+    const name = (o["Nome"] ?? o["nome"] ?? "").trim();
+    const team = (o["Time"] ?? o["time"] ?? "").trim();
+    const kindRaw = (o["Segmento"] ?? o["segmento"] ?? o["Tipo"] ?? o["tipo"] ?? "")
+      .toLowerCase()
+      .trim();
+    const levelRaw = (o["Nível"] ?? o["Nivel"] ?? o["nivel"] ?? o["Level"] ?? "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .trim();
+    const salaryRaw = o["Salário"] ?? o["Salario"] ?? o["salario"] ?? o["salário"] ?? "";
+
+    if (!name || !team) continue;
+
+    const kind: MemberKind = kindRaw === "longos" ? "longos" : "shorts";
+    const level: MemberLevel = levelRaw === "gestao" ? "gestao" : "operacional";
+    const salaryBrl = parseLocaleNumber(salaryRaw);
+
+    if (Number.isNaN(salaryBrl) || salaryBrl <= 0) continue;
+
+    // Convert BRL → USD using the exchange rate in cell I2 of the sheet (raw[1][8])
+    const salary = hasRate ? salaryBrl / exchangeRate : salaryBrl;
+
+    out.push({ name, team, kind, level, salary });
+  }
+  return out;
+}
+
 export async function loadDashboardData(): Promise<DashboardData> {
   const tabs = await discoverTabs();
   const segmentTabs = tabs.filter((t) => SEGMENT_PATTERN.test(t.name));
   const changelogTab = tabs.find((t) => t.name.toLowerCase() === "changelog");
   const metasTab = tabs.find((t) => t.name.toLowerCase() === "metas");
+  const timesTab = tabs.find((t) => t.name.toLowerCase() === "times");
 
-  const [segmentResults, changelogRows, metasRows] = await Promise.all([
+  const [segmentResults, changelogRows, metasRows, timesRows] = await Promise.all([
     Promise.all(
       segmentTabs.map(async (t) => parseSegmentSheet(t, await fetchCsv(t.gid))),
     ),
     changelogTab ? fetchCsv(changelogTab.gid) : Promise.resolve([] as string[][]),
     metasTab ? fetchCsv(metasTab.gid) : Promise.resolve([] as string[][]),
+    timesTab ? fetchCsv(timesTab.gid) : Promise.resolve([] as string[][]),
   ]);
 
   const segments = segmentResults.filter((s) => s.rows.length > 0);
   const changelog = parseChangelog(changelogRows);
   const goals = parseGoals(metasRows);
+  const teamMembers = parseTeamMembers(timesRows);
 
   const channels = [...new Set(segments.map((s) => s.channel))].sort();
   const teams = [
@@ -157,6 +200,7 @@ export async function loadDashboardData(): Promise<DashboardData> {
     segments,
     changelog,
     goals,
+    teamMembers,
     fetchedAt: new Date().toISOString(),
   };
 }

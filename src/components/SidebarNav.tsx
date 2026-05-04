@@ -6,6 +6,7 @@ import clsx from "clsx";
 
 const ITEMS = [
   { href: "/times", label: "Times" },
+  { href: "/roi", label: "Custo por Time" },
   { href: "/canais", label: "Canais" },
   { href: "/longos", label: "Longos" },
   { href: "/shorts", label: "Shorts" },

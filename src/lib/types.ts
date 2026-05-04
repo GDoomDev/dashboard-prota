@@ -1,5 +1,16 @@
 export type SegmentKind = "longos" | "curtos";
 
+export type MemberKind = "shorts" | "longos";
+export type MemberLevel = "operacional" | "gestao";
+
+export interface TeamMember {
+  name: string;
+  team: string;
+  kind: MemberKind;
+  level: MemberLevel;
+  salary: number;
+}
+
 export type SegmentId = `${string}_${SegmentKind}`;
 
 export interface DailyRow {
@@ -41,5 +52,6 @@ export interface DashboardData {
   segments: SegmentSeries[];
   changelog: ChangelogEntry[];
   goals: TeamGoal[];
+  teamMembers: TeamMember[];
   fetchedAt: string;
 }
