@@ -10,7 +10,11 @@
       "Bash(curl -s http://localhost:3000/)",
       "Bash(curl -sL http://localhost:3000/canais)",
       "Bash(python3 -c ' *)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(git -C /Users/gabriel/dashboard-prota status)",
+      "Bash(git -C /Users/gabriel/dashboard-prota remote -v)",
+      "Bash(npx next *)",
+      "Bash(node -e ' *)"
     ]
   }
 }

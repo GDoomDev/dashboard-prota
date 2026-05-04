@@ -10,7 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { formatUSD } from "@/lib/format";
+import { formatAxisUSD, formatUSD } from "@/lib/format";
 
 export interface RoiBarData {
   name: string;
@@ -111,11 +111,11 @@ export function RoiComparisonChart({ data, title, subtitle }: Props) {
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(120,120,120,0.15)" />
             <XAxis dataKey="name" stroke="currentColor" fontSize={11} tickLine={false} />
             <YAxis
-              tickFormatter={(v: number) => formatUSD(v).replace("US$ ", "$")}
+              tickFormatter={(v: number) => formatAxisUSD(v)}
               stroke="currentColor"
               fontSize={11}
               tickLine={false}
-              width={74}
+              width={88}
             />
             <Tooltip
               content={(props) => (

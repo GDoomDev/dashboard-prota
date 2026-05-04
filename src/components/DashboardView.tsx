@@ -61,6 +61,9 @@ export function DashboardView({
   const { views } = totals(sumByDate(displayedViews.map((s) => s.rows)));
   const rpm = views > 0 ? (revenue / views) * 1000 : 0;
 
+  const lastRevenue = lastDayTotal(displayedRevenue, "revenue");
+  const lastViews = lastDayTotal(displayedViews, "views");
+
   const hasData = rangeAvailable && (revenue > 0 || views > 0);
 
   // For single-entity view: split base from others
@@ -102,9 +105,23 @@ export function DashboardView({
 
       {hasData ? (
         <>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
             <StatCard label="Receita acumulada" value={formatUSD(revenue)} />
+            {lastRevenue && (
+              <StatCard
+                label="Receita último dia"
+                value={formatUSD(lastRevenue.value)}
+                hint={fmtPt(lastRevenue.date)}
+              />
+            )}
             <StatCard label="Views acumuladas" value={formatInt(views)} />
+            {lastViews && (
+              <StatCard
+                label="Views último dia"
+                value={formatInt(lastViews.value)}
+                hint={fmtPt(lastViews.date)}
+              />
+            )}
             <StatCard label="RPM" value={formatUSDPrecise(rpm)} />
           </div>
 
@@ -123,12 +140,14 @@ export function DashboardView({
                 metric="revenue"
                 title="Receita dia a dia (USD)"
                 colors={colorMap}
+                showTotal={!selectedEntity && filteredRevenue.length > 1}
               />
               <MetricChart
                 series={filteredViews}
                 metric="views"
                 title="Views dia a dia"
                 colors={colorMap}
+                showTotal={!selectedEntity && filteredViews.length > 1}
               />
             </div>
           )}
@@ -146,4 +165,23 @@ function fmtPt(iso: string): string {
   const [y, m, d] = iso.split("-");
   if (!y) return iso;
   return `${d}/${m}/${y}`;
+}
+
+function lastDayTotal(
+  series: NamedSeries[],
+  metric: "revenue" | "views",
+): { value: number; date: string } | null {
+  let lastDate = "";
+  for (const s of series) {
+    for (const r of s.rows) {
+      if (r[metric] > 0 && r.date > lastDate) lastDate = r.date;
+    }
+  }
+  if (!lastDate) return null;
+  let value = 0;
+  for (const s of series) {
+    const row = s.rows.find((r) => r.date === lastDate);
+    if (row) value += row[metric];
+  }
+  return { value, date: lastDate };
 }

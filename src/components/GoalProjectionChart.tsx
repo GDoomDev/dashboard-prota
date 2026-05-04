@@ -11,7 +11,7 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from "recharts";
-import { formatFullDate, formatUSD } from "@/lib/format";
+import { formatAxisUSD, formatFullDate, formatUSD } from "@/lib/format";
 
 export interface GoalChartPoint {
   date: string;
@@ -112,11 +112,11 @@ export function GoalProjectionChart({ points, teamColor, todayDate, goalStart, g
             interval={0}
           />
           <YAxis
-            tickFormatter={(v: number) => formatUSD(v)}
+            tickFormatter={(v: number) => formatAxisUSD(v)}
             tick={{ fontSize: 11, fill: "#71717a" }}
             tickLine={false}
             axisLine={false}
-            width={100}
+            width={88}
             domain={[0, "auto"]}
           />
           <Tooltip

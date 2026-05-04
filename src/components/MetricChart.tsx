@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   CartesianGrid,
   Legend,
@@ -10,16 +11,19 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { colorFor, formatFullDate, formatInt, formatShortDate, formatUSD } from "@/lib/format";
+import { colorFor, formatAxisUSD, formatFullDate, formatInt, formatShortDate, formatUSD } from "@/lib/format";
 import type { NamedSeries } from "@/lib/transforms";
 
 type Metric = "revenue" | "views";
+
+const TOTAL_KEY = "__total__";
 
 interface Props {
   series: NamedSeries[];
   metric: Metric;
   title: string;
   colors?: Record<string, string>;
+  showTotal?: boolean;
 }
 
 interface ChartRow {
@@ -31,6 +35,12 @@ interface TooltipEntry {
   name: string;
   value: number;
   color: string;
+}
+
+interface LegendPayloadEntry {
+  value: string;
+  color: string;
+  dataKey: string;
 }
 
 function MetricTooltip({
@@ -72,22 +82,83 @@ function MetricTooltip({
   );
 }
 
-function buildRows(series: NamedSeries[], metric: Metric): ChartRow[] {
+function ChartLegend({
+  payload,
+  showTotal,
+  totalVisible,
+  onTotalToggle,
+}: {
+  payload?: LegendPayloadEntry[];
+  showTotal: boolean;
+  totalVisible: boolean;
+  onTotalToggle: () => void;
+}) {
+  const seriesItems = (payload ?? []).filter((p) => p.dataKey !== TOTAL_KEY);
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        alignItems: "center",
+        gap: "4px 16px",
+        paddingTop: 8,
+        fontSize: 12,
+      }}
+    >
+      {seriesItems.map((item) => (
+        <span key={item.dataKey} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <svg width="16" height="10" style={{ flexShrink: 0 }}>
+            <line x1="0" y1="5" x2="16" y2="5" stroke={item.color} strokeWidth="2" />
+          </svg>
+          {item.value}
+        </span>
+      ))}
+      {showTotal && (
+        <label
+          style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer", userSelect: "none" }}
+        >
+          <svg width="16" height="10" style={{ flexShrink: 0 }}>
+            <line
+              x1="0" y1="5" x2="16" y2="5"
+              stroke="#a1a1aa"
+              strokeWidth="2"
+              strokeDasharray="6 3"
+            />
+          </svg>
+          Total
+          <input
+            type="checkbox"
+            checked={totalVisible}
+            onChange={onTotalToggle}
+            style={{ cursor: "pointer", accentColor: "#a1a1aa" }}
+          />
+        </label>
+      )}
+    </div>
+  );
+}
+
+function buildRows(series: NamedSeries[], metric: Metric, showTotal: boolean): ChartRow[] {
   const dates = new Set<string>();
   for (const s of series) for (const r of s.rows) dates.add(r.date);
   return [...dates].sort().map((date) => {
     const row: ChartRow = { date };
+    let total = 0;
     for (const s of series) {
       const r = s.rows.find((x) => x.date === date);
-      row[s.id] = r ? r[metric] : 0;
+      const val = r ? r[metric] : 0;
+      row[s.id] = val;
+      total += val;
     }
+    if (showTotal) row[TOTAL_KEY] = total;
     return row;
   });
 }
 
-export function MetricChart({ series, metric, title, colors }: Props) {
+export function MetricChart({ series, metric, title, colors, showTotal }: Props) {
   const fmt = metric === "revenue" ? formatUSD : formatInt;
-  const data = buildRows(series, metric);
+  const data = buildRows(series, metric, !!showTotal);
+  const [totalVisible, setTotalVisible] = useState(true);
 
   return (
     <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
@@ -105,12 +176,12 @@ export function MetricChart({ series, metric, title, colors }: Props) {
             />
             <YAxis
               tickFormatter={(v: number) =>
-                metric === "revenue" ? formatUSD(v).replace("US$ ", "$") : formatInt(v)
+                metric === "revenue" ? formatAxisUSD(v) : formatInt(v)
               }
               stroke="currentColor"
               fontSize={11}
               tickLine={false}
-              width={70}
+              width={88}
             />
             <Tooltip
               content={(props) => (
@@ -122,7 +193,16 @@ export function MetricChart({ series, metric, title, colors }: Props) {
                 />
               )}
             />
-            <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+            <Legend
+              content={(legendProps) => (
+                <ChartLegend
+                  payload={legendProps.payload as unknown as LegendPayloadEntry[]}
+                  showTotal={!!showTotal}
+                  totalVisible={totalVisible}
+                  onTotalToggle={() => setTotalVisible((v) => !v)}
+                />
+              )}
+            />
             {series.map((s, i) => (
               <Line
                 key={s.id}
@@ -134,6 +214,18 @@ export function MetricChart({ series, metric, title, colors }: Props) {
                 name={s.label}
               />
             ))}
+            {showTotal && totalVisible && (
+              <Line
+                key={TOTAL_KEY}
+                type="linear"
+                dataKey={TOTAL_KEY}
+                stroke="#a1a1aa"
+                strokeWidth={2}
+                strokeDasharray="6 3"
+                dot={false}
+                name="Total"
+              />
+            )}
           </LineChart>
         </ResponsiveContainer>
       </div>

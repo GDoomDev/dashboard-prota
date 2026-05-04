@@ -14,6 +14,13 @@ export function formatUSD(n: number): string {
   return usd.format(n);
 }
 
+// Short form for axis ticks: strips "US$" prefix (handles regular space, U+00A0
+// and U+202F narrow no-break space which pt-BR Intl uses) and replaces with "$".
+export function formatAxisUSD(n: number): string {
+  if (!Number.isFinite(n)) return "—";
+  return usd.format(n).replace(/^US\$[\s  ]*/u, "$");
+}
+
 export function formatUSDPrecise(n: number): string {
   if (!Number.isFinite(n)) return "—";
   return usdDetailed.format(n);
