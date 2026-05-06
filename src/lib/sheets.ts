@@ -88,8 +88,8 @@ function parseSegmentSheet(tab: SheetTab, raw: string[][]): SegmentSeries {
     const date = parseDate(dateRaw);
     const revenue = parseLocaleNumber(revRaw);
     const views = parseLocaleNumber(viewsRaw);
-    if (!date || Number.isNaN(revenue) || Number.isNaN(views)) continue;
-    rows.push({ date, revenue, views });
+    if (!date || Number.isNaN(views)) continue;
+    rows.push({ date, revenue: Number.isNaN(revenue) ? 0 : revenue, views });
   }
   rows.sort((a, b) => a.date.localeCompare(b.date));
   return { segment: `${channel}_${kind}`, channel, kind, rows };

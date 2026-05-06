@@ -6,6 +6,7 @@ import {
   Legend,
   Line,
   LineChart,
+  ReferenceArea,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -28,7 +29,7 @@ interface Props {
 
 interface ChartRow {
   date: string;
-  [key: string]: number | string;
+  [key: string]: number | string | null;
 }
 
 interface TooltipEntry {
@@ -48,14 +49,23 @@ function MetricTooltip({
   payload,
   label,
   fmt,
+  showTotal,
 }: {
   active?: boolean;
   payload?: TooltipEntry[];
   label?: unknown;
   fmt: (n: number) => string;
+  showTotal?: boolean;
 }) {
   if (!active || !payload?.length) return null;
-  const sorted = [...payload].sort((a, b) => b.value - a.value);
+  const valid = [...payload].filter((e) => e.value != null);
+  const totalEntry = valid.find((e) => e.name === "Total");
+  const seriesEntries = valid.filter((e) => e.name !== "Total").sort((a, b) => b.value - a.value);
+
+  // Show total even when the line is toggled off — compute from series entries as fallback
+  const totalValue = totalEntry?.value ?? (showTotal ? seriesEntries.reduce((s, e) => s + e.value, 0) : null);
+  const hasTotal = showTotal && totalValue != null;
+
   return (
     <div
       style={{
@@ -65,12 +75,26 @@ function MetricTooltip({
         color: "white",
         fontSize: 12,
         padding: "6px 10px",
+        minWidth: 180,
       }}
     >
-      <p style={{ marginBottom: 4, fontSize: 11, color: "#a1a1aa" }}>
+      <p style={{ marginBottom: hasTotal ? 6 : 4, fontSize: 11, color: "#a1a1aa" }}>
         {formatFullDate(String(label ?? ""))}
       </p>
-      {sorted.map((entry, i) => (
+      {hasTotal && (
+        <>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
+            <span style={{ color: "#a1a1aa", fontWeight: 600 }}>Total</span>
+            <span style={{ marginLeft: "auto", fontVariantNumeric: "tabular-nums", fontWeight: 600 }}>
+              {fmt(totalValue!)}
+            </span>
+          </div>
+          {seriesEntries.length > 0 && (
+            <div style={{ borderTop: "1px solid rgb(63 63 70)", marginBottom: 6 }} />
+          )}
+        </>
+      )}
+      {seriesEntries.map((entry, i) => (
         <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 2 }}>
           <span style={{ color: entry.color }}>{entry.name}</span>
           <span style={{ marginLeft: "auto", fontVariantNumeric: "tabular-nums" }}>
@@ -138,27 +162,60 @@ function ChartLegend({
   );
 }
 
-function buildRows(series: NamedSeries[], metric: Metric, showTotal: boolean): ChartRow[] {
+/**
+ * For revenue charts, finds the last date where total revenue across all series > 0.
+ * If there are trailing dates after it with total = 0, those are "incomplete" pending days.
+ */
+function findIncompleteAfter(series: NamedSeries[], metric: Metric): string | undefined {
+  if (metric !== "revenue") return undefined;
+  const allDates = [...new Set(series.flatMap((s) => s.rows.map((r) => r.date)))].sort();
+  if (allDates.length === 0) return undefined;
+  let lastRevenueDate: string | undefined;
+  for (const date of allDates) {
+    let total = 0;
+    for (const s of series) {
+      const r = s.rows.find((x) => x.date === date);
+      total += r ? r.revenue : 0;
+    }
+    if (total > 0) lastRevenueDate = date;
+  }
+  const lastDate = allDates[allDates.length - 1];
+  return lastRevenueDate && lastDate > lastRevenueDate ? lastRevenueDate : undefined;
+}
+
+function buildRows(
+  series: NamedSeries[],
+  metric: Metric,
+  showTotal: boolean,
+  incompleteAfter?: string,
+): ChartRow[] {
   const dates = new Set<string>();
   for (const s of series) for (const r of s.rows) dates.add(r.date);
   return [...dates].sort().map((date) => {
+    const pending = incompleteAfter !== undefined && date > incompleteAfter;
     const row: ChartRow = { date };
     let total = 0;
     for (const s of series) {
       const r = s.rows.find((x) => x.date === date);
       const val = r ? r[metric] : 0;
-      row[s.id] = val;
-      total += val;
+      row[s.id] = pending ? null : val;
+      if (!pending) total += val;
     }
-    if (showTotal) row[TOTAL_KEY] = total;
+    if (showTotal) row[TOTAL_KEY] = pending ? null : total;
     return row;
   });
 }
 
 export function MetricChart({ series, metric, title, colors, showTotal }: Props) {
   const fmt = metric === "revenue" ? formatUSD : formatInt;
-  const data = buildRows(series, metric, !!showTotal);
+  const incompleteAfter = findIncompleteAfter(series, metric);
+  const data = buildRows(series, metric, !!showTotal, incompleteAfter);
   const [totalVisible, setTotalVisible] = useState(true);
+
+  const incompleteStart = incompleteAfter
+    ? (data.find((row) => (row.date as string) > incompleteAfter)?.date as string | undefined)
+    : undefined;
+  const incompleteEnd = incompleteStart ? (data[data.length - 1]?.date as string) : undefined;
 
   return (
     <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
@@ -190,6 +247,7 @@ export function MetricChart({ series, metric, title, colors, showTotal }: Props)
                   payload={props.payload as unknown as TooltipEntry[]}
                   label={props.label}
                   fmt={fmt}
+                  showTotal={!!showTotal}
                 />
               )}
             />
@@ -203,6 +261,16 @@ export function MetricChart({ series, metric, title, colors, showTotal }: Props)
                 />
               )}
             />
+            {incompleteStart && incompleteEnd && (
+              <ReferenceArea
+                x1={incompleteStart}
+                x2={incompleteEnd}
+                fill="rgba(161,161,170,0.12)"
+                stroke="rgba(161,161,170,0.3)"
+                strokeWidth={1}
+                strokeDasharray="4 3"
+              />
+            )}
             {series.map((s, i) => (
               <Line
                 key={s.id}
@@ -212,6 +280,7 @@ export function MetricChart({ series, metric, title, colors, showTotal }: Props)
                 strokeWidth={2}
                 dot={false}
                 name={s.label}
+                connectNulls={false}
               />
             ))}
             {showTotal && totalVisible && (
@@ -224,6 +293,7 @@ export function MetricChart({ series, metric, title, colors, showTotal }: Props)
                 strokeDasharray="6 3"
                 dot={false}
                 name="Total"
+                connectNulls={false}
               />
             )}
           </LineChart>

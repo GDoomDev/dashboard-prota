@@ -37,17 +37,17 @@ export function DashboardView({
     series.map((s, i) => [s.id, colorForEntity(s.id, i)]),
   );
 
-  // Revenue series: capped at revenueEnd (excludes trailing zero-revenue day)
+  // Both series use the full range so the X-axis aligns between revenue and views charts
   const filteredRevenue: NamedSeries[] = series.map((s) => ({
     ...s,
-    rows: filterRows(s.rows, { start: range.start, end: revenueEnd || range.end }),
+    rows: filterRows(s.rows, range),
   }));
 
-  // Views series: full range (includes the extra day that may have 0 revenue but real views)
   const filteredViews: NamedSeries[] = series.map((s) => ({
     ...s,
     rows: filterRows(s.rows, range),
   }));
+
 
   // Narrow to selected entity for StatCard totals
   const displayedRevenue = selectedEntity
