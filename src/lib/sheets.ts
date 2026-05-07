@@ -129,10 +129,15 @@ function parseGoals(raw: string[][]): TeamGoal[] {
 }
 
 function parseTeamMembers(raw: string[][]): TeamMember[] {
-  // Cell I2 (row index 1, column index 8) holds the BRL→USD exchange rate
-  const exchangeRaw = raw[1]?.[8] ?? "";
+  // Find the "Dolar" column by header name and read the exchange rate from row 2 (index 1)
+  const headers = raw[0] ?? [];
+  const dolarCol = headers.findIndex((h) =>
+    h.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "") === "dolar",
+  );
+  const exchangeRaw = dolarCol >= 0 ? (raw[1]?.[dolarCol] ?? "") : "";
   const exchangeRate = parseLocaleNumber(exchangeRaw);
   const hasRate = Number.isFinite(exchangeRate) && exchangeRate > 0;
+  console.log("[parseTeamMembers] dolarCol:", dolarCol, "exchangeRaw:", JSON.stringify(exchangeRaw), "exchangeRate:", exchangeRate, "hasRate:", hasRate);
 
   const objs = rowsToObjects(raw);
   const out: TeamMember[] = [];
