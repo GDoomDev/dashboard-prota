@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp as _getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { initializeAuth, getAuth, indexedDBLocalPersistence } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -11,13 +11,21 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Only initialize on the client — prevents Firebase from running during SSR/build
-const app =
-  typeof window !== "undefined"
-    ? getApps().length
-      ? _getApp()
-      : initializeApp(firebaseConfig)
-    : null;
+function createApp() {
+  if (typeof window === "undefined") return null;
+  return getApps().length ? _getApp() : initializeApp(firebaseConfig);
+}
 
-export const auth = app ? getAuth(app) : null!;
+function createAuth(app: ReturnType<typeof createApp>) {
+  if (!app) return null!;
+  // If auth already exists (HMR), return it; otherwise initialize without popup resolver
+  try {
+    return initializeAuth(app, { persistence: indexedDBLocalPersistence });
+  } catch {
+    return getAuth(app);
+  }
+}
+
+const app = createApp();
+export const auth = createAuth(app);
 export const db = app ? getFirestore(app) : null!;
