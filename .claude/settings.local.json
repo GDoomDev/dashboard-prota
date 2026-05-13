@@ -23,7 +23,10 @@
       "Bash(xargs ps -p)",
       "Bash(curl -s -X POST 'https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=AIzaSyDWL3ZkQtTFV46B7O43KhCLdmZEBhBuXYc' -H 'Content-Type: application/json' -d '{\"returnSecureToken\":true}')",
       "Bash(python3 -m json.tool)",
-      "Bash(node -e \"console.log\\(require\\('./node_modules/firebase/package.json'\\).version\\)\")"
+      "Bash(node -e \"console.log\\(require\\('./node_modules/firebase/package.json'\\).version\\)\")",
+      "Bash(curl -s -X POST http://localhost:3000/api/ai/chat -H 'Content-Type: application/json' -H 'Cookie: session=1' -d '{\"messages\":[{\"role\":\"user\",\"content\":\"Olá, você está funcionando?\"}]}' --max-time 30)",
+      "Bash(cat /tmp/nextdev.log)",
+      "Read(//private/tmp/**)"
     ]
   }
 }

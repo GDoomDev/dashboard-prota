@@ -41,6 +41,12 @@ export interface TeamGoal {
   meta3: number;
 }
 
+export interface MonthlyGoal {
+  team: string;
+  month: string; // "YYYY-MM"
+  target: number;
+}
+
 export interface SheetTab {
   name: string;
   gid: string;
@@ -52,6 +58,7 @@ export interface DashboardData {
   segments: SegmentSeries[];
   changelog: ChangelogEntry[];
   goals: TeamGoal[];
+  monthlyGoals: MonthlyGoal[];
   teamMembers: TeamMember[];
   fetchedAt: string;
 }

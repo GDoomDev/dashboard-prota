@@ -9,8 +9,8 @@ import {
   datesInRange,
   teamForSegmentOnDate,
 } from "@/lib/transforms";
-import { DailyRow } from "@/lib/types";
-import { colorForEntity, formatShortDate } from "@/lib/format";
+import { DailyRow, MonthlyGoal } from "@/lib/types";
+import { colorForEntity, formatShortDate, formatUSD } from "@/lib/format";
 import { DashboardView } from "@/components/DashboardView";
 import { GoalProgress, GoalProjectedDates } from "@/components/GoalProgress";
 import { CompositionChart } from "@/components/CompositionChart";
@@ -107,6 +107,44 @@ export default async function TimesPage({ searchParams }: Props) {
     goalEntries.set(goal.team, { revenue, projected });
   }
 
+  // Monthly goal revenue per team
+  function lastDayOfMonth(yyyyMM: string): string {
+    const [y, m] = yyyyMM.split("-").map(Number);
+    const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    return `${yyyyMM}-${String(lastDay).padStart(2, "0")}`;
+  }
+
+  type MonthlyEntry = { goal: MonthlyGoal; revenue: number; pct: number; projectedDate: string | null; color: string };
+  const monthlyEntries = new Map<string, MonthlyEntry>();
+  for (const mg of data.monthlyGoals) {
+    const monthStart = `${mg.month}-01`;
+    const monthEnd = lastDayOfMonth(mg.month);
+    const clampedEnd = revenueEnd < monthEnd ? revenueEnd : monthEnd;
+    const teamRows = allTeamRows.get(mg.team) ?? [];
+    const filtered = filterRows(teamRows, { start: monthStart, end: clampedEnd });
+    const { revenue } = totals(filtered);
+    const pct = mg.target > 0 ? Math.min(100, (revenue / mg.target) * 100) : 0;
+
+    // Last-7d average daily revenue → projected date to reach target
+    const anchor = new Date(`${revenueEnd}T00:00:00Z`);
+    const sevenStart = new Date(anchor);
+    sevenStart.setUTCDate(sevenStart.getUTCDate() - 6);
+    const last7 = filterRows(teamRows, { start: sevenStart.toISOString().slice(0, 10), end: revenueEnd });
+    const avgDaily = totals(last7).revenue / 7;
+    let projectedDate: string | null = null;
+    if (revenue < mg.target && avgDaily > 0) {
+      const daysNeeded = Math.ceil((mg.target - revenue) / avgDaily);
+      const proj = new Date(anchor);
+      proj.setUTCDate(proj.getUTCDate() + daysNeeded);
+      projectedDate = proj.toISOString().slice(0, 10);
+    }
+
+    const teamIndex = series.findIndex((s) => s.id === mg.team);
+    const color = colorForEntity(mg.team, teamIndex >= 0 ? teamIndex : 0);
+
+    monthlyEntries.set(mg.team, { goal: mg, revenue, pct, projectedDate, color });
+  }
+
   type Slice = { id: string; label: string; value: number };
 
   // Composition + goal projection data for selected team
@@ -192,12 +230,27 @@ export default async function TimesPage({ searchParams }: Props) {
         rangeAvailable={Boolean(range.start && range.end)}
       />
 
+      {/* Team selected: monthly goal */}
+      {selectedTeam && monthlyEntries.has(selectedTeam) && (() => {
+        const me = monthlyEntries.get(selectedTeam)!;
+        return (
+          <section className="flex flex-col gap-3">
+            <header>
+              <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
+                Meta mensal — {selectedTeam}
+              </h2>
+            </header>
+            <MonthlyGoalCard entry={me} />
+          </section>
+        );
+      })()}
+
       {/* Team selected: goal progress (single team) + composition + projection chart */}
       {selectedTeam && teamGoal && goalEntries.has(selectedTeam) && (
         <section className="flex flex-col gap-3">
           <header>
             <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-              Progresso de meta — {selectedTeam}
+              Meta trimestral — {selectedTeam}
             </h2>
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
               Calculado sobre o período definido na aba <code>metas</code> da planilha. Projeção
@@ -252,12 +305,33 @@ export default async function TimesPage({ searchParams }: Props) {
         </section>
       )}
 
+      {/* Todos selected: monthly goals for all teams */}
+      {!selectedTeam && monthlyEntries.size > 0 && (
+        <section className="flex flex-col gap-3">
+          <header>
+            <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
+              Meta mensal
+            </h2>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              Progresso de receita acumulada no mês corrente em relação à meta definida na planilha.
+            </p>
+          </header>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[...monthlyEntries.values()]
+              .sort((a, b) => b.pct - a.pct)
+              .map((me) => (
+                <MonthlyGoalCard key={me.goal.team} entry={me} />
+              ))}
+          </div>
+        </section>
+      )}
+
       {/* Todos selected: goal progress for all teams */}
       {!selectedTeam && data.goals.length > 0 && (
         <section className="flex flex-col gap-3">
           <header>
             <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-              Progresso de meta trimestral
+              Meta trimestral
             </h2>
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
               Calculado sobre o período definido na aba <code>metas</code> da planilha. Projeção
@@ -301,6 +375,56 @@ export default async function TimesPage({ searchParams }: Props) {
           <SegmentShareChart shorts={shortsShares} longos={longosShares} />
         </section>
       )}
+    </div>
+  );
+}
+
+function MonthlyGoalCard({ entry }: { entry: { goal: MonthlyGoal; revenue: number; pct: number; projectedDate: string | null; color: string } }) {
+  const { goal, revenue, pct, projectedDate, color } = entry;
+  const [y, m] = goal.month.split("-");
+  const monthLabel = new Date(Number(y), Number(m) - 1, 1).toLocaleString("pt-BR", { month: "long", year: "numeric" });
+
+  const reached = revenue >= goal.target;
+
+  function fmtDate(iso: string): string {
+    const [fy, fm, fd] = iso.split("-");
+    return `${fd}/${fm}/${fy}`;
+  }
+
+  return (
+    <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="mb-1 flex items-baseline justify-between">
+        <span className="text-base font-semibold text-zinc-900 dark:text-zinc-50">{goal.team}</span>
+        <span className="text-xs text-zinc-400 capitalize">{monthLabel}</span>
+      </div>
+      <div className="mb-3 flex items-end justify-between gap-2">
+        <span className="text-2xl font-bold tabular-nums text-zinc-900 dark:text-zinc-50">
+          {formatUSD(revenue)}
+        </span>
+        <span className="text-sm text-zinc-500 dark:text-zinc-400">
+          / {formatUSD(goal.target)}
+        </span>
+      </div>
+      <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+        <div
+          className="h-full rounded-full transition-all"
+          style={{ width: `${pct}%`, backgroundColor: color }}
+        />
+      </div>
+      <div className="mt-1.5 flex items-center justify-between">
+        <span className="text-xs tabular-nums text-zinc-500 dark:text-zinc-400">
+          {pct.toFixed(1)}%
+        </span>
+        {reached ? (
+          <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Meta atingida ✓</span>
+        ) : projectedDate ? (
+          <span className="text-xs text-zinc-500 dark:text-zinc-400">
+            Projetado atingir em: <span className="font-semibold text-zinc-700 dark:text-zinc-300">{fmtDate(projectedDate)}</span>
+          </span>
+        ) : (
+          <span className="text-xs text-zinc-400">Sem dados suficientes</span>
+        )}
+      </div>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { SidebarNav } from "@/components/SidebarNav";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AuthGuard } from "@/components/AuthGuard";
 import { UserMenu } from "@/components/UserMenu";
+import { AIChat } from "@/components/AIChat";
 
 export default function DashboardLayout({
   children,
@@ -30,6 +31,7 @@ export default function DashboardLayout({
         </aside>
         <main className="min-w-0 flex-1">{children}</main>
       </div>
+      <AIChat />
     </AuthGuard>
   );
 }

@@ -4,6 +4,7 @@ import {
   DashboardData,
   MemberKind,
   MemberLevel,
+  MonthlyGoal,
   SegmentSeries,
   SheetTab,
   TeamGoal,
@@ -110,6 +111,51 @@ function parseChangelog(raw: string[][]): ChangelogEntry[] {
   return out;
 }
 
+const PT_MONTHS: Record<string, string> = {
+  janeiro: "01", fevereiro: "02", marco: "03", abril: "04",
+  maio: "05", junho: "06", julho: "07", agosto: "08",
+  setembro: "09", outubro: "10", novembro: "11", dezembro: "12",
+};
+
+function parseMonth(input: string): string {
+  const s = input.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const currentYear = new Date().getFullYear();
+  if (/^\d{4}-\d{2}$/.test(s)) return s;
+  const dmyMatch = /^(\d{1,2})[/\-](\d{1,2})[/\-](\d{4})$/.exec(s);
+  if (dmyMatch) return `${dmyMatch[3]}-${dmyMatch[2].padStart(2, "0")}`;
+  const myMatch = /^(\d{1,2})[/\-](\d{4})$/.exec(s);
+  if (myMatch) return `${myMatch[2]}-${myMatch[1].padStart(2, "0")}`;
+  for (const [name, num] of Object.entries(PT_MONTHS)) {
+    if (s.includes(name)) {
+      const yearMatch = /(\d{4})/.exec(s);
+      const year = yearMatch ? yearMatch[1] : String(currentYear);
+      return `${year}-${num}`;
+    }
+  }
+  return "";
+}
+
+/** Reads monthly goals from columns I-K (indices 8-10) of the metas sheet. */
+function parseMonthlyGoals(raw: string[][]): MonthlyGoal[] {
+  if (!raw.length) return [];
+  const header = raw[0];
+  // Sanity check: column I header should look like "Time"
+  if (!header[8]?.trim().toLowerCase().startsWith("time")) return [];
+  const goals: MonthlyGoal[] = [];
+  for (let i = 1; i < raw.length; i++) {
+    const row = raw[i];
+    const team = row[8]?.trim();
+    const monthRaw = row[9]?.trim() ?? "";
+    const targetRaw = row[10]?.trim() ?? "";
+    if (!team || !monthRaw || !targetRaw) continue;
+    const month = parseMonth(monthRaw);
+    const target = parseLocaleNumber(targetRaw);
+    if (!month || Number.isNaN(target) || target <= 0) continue;
+    goals.push({ team, month, target });
+  }
+  return goals;
+}
+
 function parseGoals(raw: string[][]): TeamGoal[] {
   const objs = rowsToObjects(raw);
   const out: TeamGoal[] = [];
@@ -189,6 +235,7 @@ export async function loadDashboardData(): Promise<DashboardData> {
   const segments = segmentResults.filter((s) => s.rows.length > 0);
   const changelog = parseChangelog(changelogRows);
   const goals = parseGoals(metasRows);
+  const monthlyGoals = parseMonthlyGoals(metasRows);
   const teamMembers = parseTeamMembers(timesRows);
 
   const channels = [...new Set(segments.map((s) => s.channel))].sort();
@@ -205,6 +252,7 @@ export async function loadDashboardData(): Promise<DashboardData> {
     segments,
     changelog,
     goals,
+    monthlyGoals,
     teamMembers,
     fetchedAt: new Date().toISOString(),
   };
