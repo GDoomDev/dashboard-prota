@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
+import { useAuth } from "@/context/AuthContext";
 
 type Message = { role: "user" | "assistant"; content: string };
 type Report = { team: string; content: string };
@@ -27,6 +28,8 @@ const EXAMPLES = [
 ];
 
 export function AIChat() {
+  const { isAdmin } = useAuth();
+  if (!isAdmin) return null;
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");

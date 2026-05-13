@@ -28,11 +28,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
       if (firebaseUser?.email) {
-        await fetch("/api/auth/session", { method: "POST" });
         const entry = await getWhitelistEntry(firebaseUser.email);
-        setIsAdmin(entry ? isAdminEntry(entry) : false);
+        const admin = entry ? isAdminEntry(entry) : false;
+        const role = admin ? "admin" : "user";
+        await Promise.all([
+          fetch("/api/auth/session", { method: "POST" }),
+          fetch("/api/auth/role", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ role }),
+          }),
+        ]);
+        setIsAdmin(admin);
       } else {
-        await fetch("/api/auth/session", { method: "DELETE" });
+        await Promise.all([
+          fetch("/api/auth/session", { method: "DELETE" }),
+          fetch("/api/auth/role", { method: "DELETE" }),
+        ]);
         setIsAdmin(false);
       }
       setLoading(false);
@@ -41,7 +53,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     await firebaseSignOut(auth);
-    await fetch("/api/auth/session", { method: "DELETE" });
+    await Promise.all([
+      fetch("/api/auth/session", { method: "DELETE" }),
+      fetch("/api/auth/role", { method: "DELETE" }),
+    ]);
     setIsAdmin(false);
   };
 

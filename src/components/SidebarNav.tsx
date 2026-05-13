@@ -44,9 +44,11 @@ export function SidebarNav() {
     );
   }
 
+  const visibleItems = isAdmin ? ITEMS : ITEMS.filter((i) => i.href === "/times");
+
   return (
     <nav className="flex flex-col gap-1">
-      {ITEMS.map((item) => (
+      {visibleItems.map((item) => (
         <NavLink key={item.href} href={`${item.href}${suffix}`} label={item.label} />
       ))}
       {isAdmin && (

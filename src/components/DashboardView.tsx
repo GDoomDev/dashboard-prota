@@ -19,6 +19,7 @@ interface Props {
   emptyMessage?: string;
   rangeAvailable: boolean;
   defaultPreset?: "7d" | "30d" | "90d" | "tri" | "2026";
+  showEntityPicker?: boolean;
 }
 
 export function DashboardView({
@@ -32,6 +33,7 @@ export function DashboardView({
   emptyMessage = "Sem dados no período selecionado.",
   rangeAvailable,
   defaultPreset,
+  showEntityPicker = true,
 }: Props) {
   const colorMap: Record<string, string> = Object.fromEntries(
     series.map((s, i) => [s.id, colorForEntity(s.id, i)]),
@@ -85,12 +87,14 @@ export function DashboardView({
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <Suspense fallback={null}>
-            <EntityPicker
-              entities={series.map((s) => ({ id: s.id, label: s.label }))}
-              selected={selectedEntity}
-            />
-          </Suspense>
+          {showEntityPicker && (
+            <Suspense fallback={null}>
+              <EntityPicker
+                entities={series.map((s) => ({ id: s.id, label: s.label }))}
+                selected={selectedEntity}
+              />
+            </Suspense>
+          )}
           <Suspense fallback={null}>
             <PeriodPicker defaultPreset={defaultPreset} />
           </Suspense>

@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { loadDashboardData } from "@/lib/sheets";
 import { resolvePeriod } from "@/lib/period";
 import {
@@ -55,8 +56,10 @@ function computeProjectedDates(
 
 export default async function TimesPage({ searchParams }: Props) {
   const params = await searchParams;
+  const jar = await cookies();
+  const isAdminUser = jar.get("role")?.value !== "user";
   const data = await loadDashboardData();
-  const selectedTeam = params.entity ?? null;
+  const selectedTeam = isAdminUser ? (params.entity ?? null) : null;
   const { range, revenueEnd } = resolvePeriod(data, params, {
     selectedTeam,
   });
@@ -225,9 +228,10 @@ export default async function TimesPage({ searchParams }: Props) {
         series={series}
         range={range}
         revenueEnd={revenueEnd}
-        selectedEntity={params.entity}
+        selectedEntity={isAdminUser ? params.entity : undefined}
         entityLabel="times"
         rangeAvailable={Boolean(range.start && range.end)}
+        showEntityPicker={isAdminUser}
       />
 
       {/* Team selected: monthly goal */}
