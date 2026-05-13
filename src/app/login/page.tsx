@@ -60,7 +60,7 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      router.replace("/");
+      // redirect handled by useEffect once session+role cookies are set
     } catch (err: unknown) {
       const code = (err as { code?: string }).code;
       if (code === "auth/invalid-credential" || code === "auth/wrong-password") {
@@ -92,7 +92,7 @@ export default function LoginPage() {
     try {
       await createUserWithEmailAndPassword(auth, email, password);
       await markAccountCreated(email.trim().toLowerCase());
-      router.replace("/");
+      // redirect handled by useEffect once session+role cookies are set
     } catch (err: unknown) {
       const code = (err as { code?: string }).code;
       if (code === "auth/email-already-in-use") {
