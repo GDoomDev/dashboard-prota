@@ -180,10 +180,18 @@ function parseTeamMembers(raw: string[][]): TeamMember[] {
   const dolarCol = headers.findIndex((h) =>
     h.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "") === "dolar",
   );
-  const exchangeRaw = dolarCol >= 0 ? (raw[1]?.[dolarCol] ?? "") : "";
-  const exchangeRate = parseLocaleNumber(exchangeRaw);
+  let exchangeRate = NaN;
+  if (dolarCol >= 0) {
+    for (let r = 1; r < raw.length; r++) {
+      const candidate = parseLocaleNumber(raw[r]?.[dolarCol] ?? "");
+      if (Number.isFinite(candidate) && candidate > 0) {
+        exchangeRate = candidate;
+        break;
+      }
+    }
+  }
   const hasRate = Number.isFinite(exchangeRate) && exchangeRate > 0;
-  console.log("[parseTeamMembers] dolarCol:", dolarCol, "exchangeRaw:", JSON.stringify(exchangeRaw), "exchangeRate:", exchangeRate, "hasRate:", hasRate);
+  console.log("[parseTeamMembers] dolarCol:", dolarCol, "exchangeRate:", exchangeRate, "hasRate:", hasRate);
 
   const objs = rowsToObjects(raw);
   const out: TeamMember[] = [];
