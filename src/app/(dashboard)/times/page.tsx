@@ -59,21 +59,23 @@ export default async function TimesPage({ searchParams }: Props) {
   const jar = await cookies();
   const isAdminUser = jar.get("role")?.value !== "user";
   const data = await loadDashboardData();
+  // Translation segments must never affect team goals or costs
+  const usSegments = data.segments.filter((s) => !s.translation);
   const selectedTeam = isAdminUser ? (params.entity ?? null) : null;
   const { range, revenueEnd } = resolvePeriod(data, params, {
     selectedTeam,
   });
-  const series = seriesPerTeam(data.segments, data.changelog);
+  const series = seriesPerTeam(usSegments, data.changelog);
 
   // Historical daily rows per team (used for goal progress + projections)
-  const allTeamRows = rowsByTeam(data.segments, data.changelog);
+  const allTeamRows = rowsByTeam(usSegments, data.changelog);
 
   // Per-team revenue split by kind (shorts / longos) for the current period
   const revenueRange = { start: range.start, end: revenueEnd || range.end };
   const shortsByTeamMap = new Map<string, number>();
   const longosByTeamMap = new Map<string, number>();
   if (range.start && range.end) {
-    for (const seg of data.segments) {
+    for (const seg of usSegments) {
       for (const row of filterRows(seg.rows, revenueRange)) {
         const team = teamForSegmentOnDate(data.changelog, seg.segment, row.date);
         if (!team) continue;
@@ -163,7 +165,7 @@ export default async function TimesPage({ searchParams }: Props) {
     const teamIndex = series.findIndex((s) => s.id === selectedTeam);
     teamColor = colorForEntity(selectedTeam, teamIndex >= 0 ? teamIndex : 0);
 
-    const byTeam = segmentsByEverTeam(data.segments, data.changelog);
+    const byTeam = segmentsByEverTeam(usSegments, data.changelog);
     const teamSegments = byTeam.get(selectedTeam) ?? [];
     const revenueRange = { start: range.start, end: revenueEnd || range.end };
 

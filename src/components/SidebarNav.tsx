@@ -11,6 +11,7 @@ const ITEMS = [
   { href: "/canais", label: "Canais" },
   { href: "/longos", label: "Longos" },
   { href: "/shorts", label: "Shorts" },
+  { href: "/traducoes", label: "Traduções" },
   { href: "/relatorio", label: "Relatório" },
 ];
 

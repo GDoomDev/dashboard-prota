@@ -13,17 +13,18 @@ interface Props {
 export default async function CanaisPage({ searchParams }: Props) {
   const params = await searchParams;
   const data = await loadDashboardData();
+  const usSegments = data.segments.filter((s) => !s.translation);
   const { range, revenueEnd } = resolvePeriod(data, params, {
     selectedChannel: params.entity ?? null,
   });
-  const series = seriesPerChannel(data.segments);
+  const series = seriesPerChannel(usSegments);
 
   const selectedCanal = params.entity ?? null;
 
   // When a canal is selected, show only its segments; otherwise show all
   const scopedSegments = selectedCanal
-    ? data.segments.filter((s) => s.channel === selectedCanal)
-    : data.segments;
+    ? usSegments.filter((s) => s.channel === selectedCanal)
+    : usSegments;
 
   const revenueRange = { start: range.start, end: revenueEnd || range.end };
   const kindRevMap = new Map<string, number>();

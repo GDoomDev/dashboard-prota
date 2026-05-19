@@ -21,7 +21,10 @@ const CSV_BASE = `https://docs.google.com/spreadsheets/d/e/${SHEET_PUB_ID}/pub`;
 
 const REVALIDATE_SECONDS = Number(process.env.SHEET_REVALIDATE ?? 300);
 
+// Matches regular segments: channel_longos / channel_curtos
 const SEGMENT_PATTERN = /^([a-z0-9-]+)_(longos|curtos)$/i;
+// Also matches translation segments: channel_longos_trad / channel_curtos_trad
+const SEGMENT_TAB_PATTERN = /^([a-z0-9-]+)_(longos|curtos)(_trad)?$/i;
 
 /**
  * Discover all tabs from the published HTML.
@@ -73,12 +76,13 @@ function rowsToObjects(rows: string[][]): Record<string, string>[] {
 }
 
 function parseSegmentSheet(tab: SheetTab, raw: string[][]): SegmentSeries {
-  const match = SEGMENT_PATTERN.exec(tab.name);
+  const match = SEGMENT_TAB_PATTERN.exec(tab.name);
   if (!match) {
     throw new Error(`Tab ${tab.name} does not match segment pattern`);
   }
   const channel = match[1].toLowerCase();
   const kind = match[2].toLowerCase() as "longos" | "curtos";
+  const translation = Boolean(match[3]);
   const objs = rowsToObjects(raw);
   const rows: DailyRow[] = [];
   for (const o of objs) {
@@ -93,17 +97,19 @@ function parseSegmentSheet(tab: SheetTab, raw: string[][]): SegmentSeries {
     rows.push({ date, revenue: Number.isNaN(revenue) ? 0 : revenue, views });
   }
   rows.sort((a, b) => a.date.localeCompare(b.date));
-  return { segment: `${channel}_${kind}`, channel, kind, rows };
+  return { segment: `${channel}_${kind}`, channel, kind, translation, rows };
 }
 
 function parseChangelog(raw: string[][]): ChangelogEntry[] {
   const objs = rowsToObjects(raw);
   const out: ChangelogEntry[] = [];
   for (const o of objs) {
-    const segment = (o["Dados"] ?? o["dados"] ?? "").toLowerCase();
+    const raw = (o["Dados"] ?? o["dados"] ?? "").toLowerCase();
     const dateRaw = o["Data"] ?? o["data"] ?? "";
     const team = (o["Time"] ?? o["time"] ?? "").trim();
-    if (!segment || !dateRaw || !team) continue;
+    if (!raw || !dateRaw || !team) continue;
+    // Strip _trad suffix so translation segments share the same ID as their SegmentSeries
+    const segment = raw.replace(/_trad$/, "");
     if (!SEGMENT_PATTERN.test(segment)) continue;
     out.push({ segment: segment as `${string}_longos` | `${string}_curtos`, date: parseDate(dateRaw), team });
   }
@@ -226,7 +232,7 @@ function parseTeamMembers(raw: string[][]): TeamMember[] {
 
 export async function loadDashboardData(): Promise<DashboardData> {
   const tabs = await discoverTabs();
-  const segmentTabs = tabs.filter((t) => SEGMENT_PATTERN.test(t.name));
+  const segmentTabs = tabs.filter((t) => SEGMENT_TAB_PATTERN.test(t.name));
   const changelogTab = tabs.find((t) => t.name.toLowerCase() === "changelog");
   const metasTab = tabs.find((t) => t.name.toLowerCase() === "metas");
   const timesTab = tabs.find((t) => t.name.toLowerCase() === "times");

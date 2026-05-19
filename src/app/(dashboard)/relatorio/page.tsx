@@ -15,8 +15,9 @@ interface Props {
 export default async function RelatorioPage({ searchParams }: Props) {
   const params = await searchParams;
   const data = await loadDashboardData();
+  const usSegments = data.segments.filter((s) => !s.translation);
 
-  const byTeam = segmentsByEverTeam(data.segments, data.changelog);
+  const byTeam = segmentsByEverTeam(usSegments, data.changelog);
   const teams = [...byTeam.keys()].sort();
 
   const selectedTeam = params.entity && byTeam.has(params.entity) ? params.entity : teams[0] ?? null;

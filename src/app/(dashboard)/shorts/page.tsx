@@ -15,7 +15,7 @@ export default async function ShortsPage({ searchParams }: Props) {
   const { range, revenueEnd } = resolvePeriod(data, params, {
     selectedChannel: params.entity ?? null,
   });
-  const series = seriesPerSegmentKind(data.segments, "curtos");
+  const series = seriesPerSegmentKind(data.segments.filter((s) => !s.translation), "curtos");
   return (
     <DashboardView
       title="Shorts"

@@ -15,7 +15,7 @@ export default async function LongosPage({ searchParams }: Props) {
   const { range, revenueEnd } = resolvePeriod(data, params, {
     selectedChannel: params.entity ?? null,
   });
-  const series = seriesPerSegmentKind(data.segments, "longos");
+  const series = seriesPerSegmentKind(data.segments.filter((s) => !s.translation), "longos");
   return (
     <DashboardView
       title="Vídeos Longos"

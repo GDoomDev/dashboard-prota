@@ -46,10 +46,11 @@ function formatPct(pct: number): string {
 export default async function RoiPage({ searchParams }: Props) {
   const params = await searchParams;
   const data = await loadDashboardData();
+  const usSegments = data.segments.filter((s) => !s.translation);
   const selectedTeam = params.entity ?? null;
 
   // Always fixed to last 30 days
-  const anchor = latestRevenueDate(data.segments);
+  const anchor = latestRevenueDate(usSegments);
   const anchorDate = new Date(`${anchor}T00:00:00Z`);
   anchorDate.setUTCDate(anchorDate.getUTCDate() - 29);
   const rangeStart = anchorDate.toISOString().slice(0, 10);
@@ -81,7 +82,7 @@ export default async function RoiPage({ searchParams }: Props) {
     const costTotal = members.reduce((s, m) => s + m.salary, 0);
 
     const revShorts = teamKindRevenue(
-      data.segments,
+      usSegments,
       data.changelog,
       team,
       "curtos",
@@ -89,7 +90,7 @@ export default async function RoiPage({ searchParams }: Props) {
       anchor,
     );
     const revLongos = teamKindRevenue(
-      data.segments,
+      usSegments,
       data.changelog,
       team,
       "longos",

@@ -253,6 +253,18 @@ export function segmentsByEverTeam(
   return result;
 }
 
+/**
+ * Filter segments by the channel type selection:
+ * "us"   → only non-translation segments (default)
+ * "trad" → only translation segments
+ * "both" → all segments
+ */
+export function filterByView(segments: SegmentSeries[], view: string): SegmentSeries[] {
+  if (view === "trad") return segments.filter((s) => s.translation);
+  if (view === "both") return segments;
+  return segments.filter((s) => !s.translation);
+}
+
 export function titleCase(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }

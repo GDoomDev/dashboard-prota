@@ -23,6 +23,7 @@ export interface SegmentSeries {
   segment: SegmentId;
   channel: string;
   kind: SegmentKind;
+  translation: boolean;
   rows: DailyRow[];
 }
 

@@ -20,6 +20,8 @@ interface Props {
   rangeAvailable: boolean;
   defaultPreset?: "7d" | "30d" | "90d" | "tri" | "2026";
   showEntityPicker?: boolean;
+  /** Override the entity list shown in the picker (instead of deriving from series). */
+  entityItems?: { id: string; label: string }[];
 }
 
 export function DashboardView({
@@ -34,6 +36,7 @@ export function DashboardView({
   rangeAvailable,
   defaultPreset,
   showEntityPicker = true,
+  entityItems,
 }: Props) {
   const colorMap: Record<string, string> = Object.fromEntries(
     series.map((s, i) => [s.id, colorForEntity(s.id, i)]),
@@ -90,7 +93,7 @@ export function DashboardView({
           {showEntityPicker && (
             <Suspense fallback={null}>
               <EntityPicker
-                entities={series.map((s) => ({ id: s.id, label: s.label }))}
+                entities={entityItems ?? series.map((s) => ({ id: s.id, label: s.label }))}
                 selected={selectedEntity}
               />
             </Suspense>
