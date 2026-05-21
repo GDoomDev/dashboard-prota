@@ -33,6 +33,7 @@ function computeProjectedDates(
   meta3: number,
   revenueEnd: string,
 ): GoalProjectedDates {
+  if (!revenueEnd) return { meta1: null, meta2: null, meta3: null };
   const anchor = new Date(`${revenueEnd}T00:00:00Z`);
   const start30 = new Date(anchor);
   start30.setUTCDate(start30.getUTCDate() - 29);
@@ -131,17 +132,19 @@ export default async function TimesPage({ searchParams }: Props) {
     const pct = mg.target > 0 ? Math.min(100, (revenue / mg.target) * 100) : 0;
 
     // Last-7d average daily revenue → projected date to reach target
-    const anchor = new Date(`${revenueEnd}T00:00:00Z`);
-    const sevenStart = new Date(anchor);
-    sevenStart.setUTCDate(sevenStart.getUTCDate() - 6);
-    const last7 = filterRows(teamRows, { start: sevenStart.toISOString().slice(0, 10), end: revenueEnd });
-    const avgDaily = totals(last7).revenue / 7;
     let projectedDate: string | null = null;
-    if (revenue < mg.target && avgDaily > 0) {
-      const daysNeeded = Math.ceil((mg.target - revenue) / avgDaily);
-      const proj = new Date(anchor);
-      proj.setUTCDate(proj.getUTCDate() + daysNeeded);
-      projectedDate = proj.toISOString().slice(0, 10);
+    if (revenueEnd) {
+      const anchor = new Date(`${revenueEnd}T00:00:00Z`);
+      const sevenStart = new Date(anchor);
+      sevenStart.setUTCDate(sevenStart.getUTCDate() - 6);
+      const last7 = filterRows(teamRows, { start: sevenStart.toISOString().slice(0, 10), end: revenueEnd });
+      const avgDaily = totals(last7).revenue / 7;
+      if (revenue < mg.target && avgDaily > 0) {
+        const daysNeeded = Math.ceil((mg.target - revenue) / avgDaily);
+        const proj = new Date(anchor);
+        proj.setUTCDate(proj.getUTCDate() + daysNeeded);
+        projectedDate = proj.toISOString().slice(0, 10);
+      }
     }
 
     const teamIndex = series.findIndex((s) => s.id === mg.team);

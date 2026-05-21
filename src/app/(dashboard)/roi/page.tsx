@@ -51,6 +51,15 @@ export default async function RoiPage({ searchParams }: Props) {
 
   // Always fixed to last 30 days
   const anchor = latestRevenueDate(usSegments);
+  if (!anchor) {
+    return (
+      <div className="flex flex-col gap-8">
+        <div className="rounded-xl border border-dashed border-zinc-300 bg-white p-10 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
+          Sem dados disponíveis. Verifique se a planilha está acessível e publicada.
+        </div>
+      </div>
+    );
+  }
   const anchorDate = new Date(`${anchor}T00:00:00Z`);
   anchorDate.setUTCDate(anchorDate.getUTCDate() - 29);
   const rangeStart = anchorDate.toISOString().slice(0, 10);

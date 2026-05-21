@@ -86,7 +86,7 @@ function parseSegmentSheet(tab: SheetTab, raw: string[][]): SegmentSeries {
   const objs = rowsToObjects(raw);
   const rows: DailyRow[] = [];
   for (const o of objs) {
-    const dateRaw = o["Date"] ?? o["date"] ?? "";
+    const dateRaw = o["Date"] ?? o["date"] ?? o["Data"] ?? o["data"] ?? "";
     if (!dateRaw) continue;
     const revRaw = o["Estimated revenue (USD)"] ?? o["Revenue"] ?? "";
     const viewsRaw = o["Views"] ?? o["views"] ?? "";
@@ -239,14 +239,21 @@ export async function loadDashboardData(): Promise<DashboardData> {
 
   const [segmentResults, changelogRows, metasRows, timesRows] = await Promise.all([
     Promise.all(
-      segmentTabs.map(async (t) => parseSegmentSheet(t, await fetchCsv(t.gid))),
+      segmentTabs.map(async (t) => {
+        try {
+          return parseSegmentSheet(t, await fetchCsv(t.gid));
+        } catch (err) {
+          console.warn(`[sheets] Failed to fetch segment tab "${t.name}" (gid=${t.gid}):`, err);
+          return null;
+        }
+      }),
     ),
-    changelogTab ? fetchCsv(changelogTab.gid) : Promise.resolve([] as string[][]),
-    metasTab ? fetchCsv(metasTab.gid) : Promise.resolve([] as string[][]),
-    timesTab ? fetchCsv(timesTab.gid) : Promise.resolve([] as string[][]),
+    changelogTab ? fetchCsv(changelogTab.gid).catch((err) => { console.warn("[sheets] changelog fetch failed:", err); return [] as string[][]; }) : Promise.resolve([] as string[][]),
+    metasTab ? fetchCsv(metasTab.gid).catch((err) => { console.warn("[sheets] metas fetch failed:", err); return [] as string[][]; }) : Promise.resolve([] as string[][]),
+    timesTab ? fetchCsv(timesTab.gid).catch((err) => { console.warn("[sheets] times fetch failed:", err); return [] as string[][]; }) : Promise.resolve([] as string[][]),
   ]);
 
-  const segments = segmentResults.filter((s) => s.rows.length > 0);
+  const segments = segmentResults.filter((s): s is SegmentSeries => s !== null && s.rows.length > 0);
   const changelog = parseChangelog(changelogRows);
   const goals = parseGoals(metasRows);
   const monthlyGoals = parseMonthlyGoals(metasRows);
