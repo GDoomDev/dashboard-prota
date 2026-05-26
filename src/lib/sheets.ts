@@ -88,7 +88,7 @@ function parseSegmentSheet(tab: SheetTab, raw: string[][]): SegmentSeries {
   for (const o of objs) {
     const dateRaw = o["Date"] ?? o["date"] ?? o["Data"] ?? o["data"] ?? "";
     if (!dateRaw) continue;
-    const revRaw = o["Estimated revenue (USD)"] ?? o["Revenue"] ?? "";
+    const revRaw = o["Estimated revenue (USD)"] ?? o["Estimated Revenue (USD)"] ?? o["Revenue"] ?? "";
     const viewsRaw = o["Views"] ?? o["views"] ?? "";
     const date = parseDate(dateRaw);
     const revenue = parseLocaleNumber(revRaw);
