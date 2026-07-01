@@ -269,6 +269,25 @@ export function titleCase(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+/** Language codes appended to a US channel's base name to form a translation channel. */
+const TRANSLATION_SUFFIXES = ["br", "es", "de", "fr"];
+
+/**
+ * Maps a channel to its franchise (the base US channel name). Translation
+ * channels carry a trailing language code — "davebr", "davede", "davees",
+ * "davefr" — which is stripped so they collapse onto the US channel ("dave").
+ * US channels are returned unchanged.
+ */
+export function franchiseForChannel(channel: string, translation: boolean): string {
+  if (!translation) return channel;
+  for (const suffix of TRANSLATION_SUFFIXES) {
+    if (channel.length > suffix.length && channel.endsWith(suffix)) {
+      return channel.slice(0, -suffix.length);
+    }
+  }
+  return channel;
+}
+
 /** Returns the team that currently owns a channel (via the most recent changelog entry for any of its segments). */
 export function currentTeamForChannel(
   segments: SegmentSeries[],

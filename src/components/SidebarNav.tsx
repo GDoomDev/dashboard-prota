@@ -6,6 +6,7 @@ import clsx from "clsx";
 import { useAuth } from "@/context/AuthContext";
 
 const ITEMS = [
+  { href: "/resumo", label: "Resumo" },
   { href: "/times", label: "Times" },
   { href: "/roi", label: "Custo por Time" },
   { href: "/canais", label: "Canais" },
